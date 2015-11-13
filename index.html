@@ -1,0 +1,251 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>Caleg Collection</title>
+        <link rel="stylesheet" href="css/bootstrap.min.css"/>
+        <link rel="stylesheet" href="css/londinium-theme.css"/>
+        <link rel="stylesheet" href="css/mystyle.css"/>
+        <link rel="stylesheet" href="css/icons.css"/>
+        <script src="js/jquery-1.11.3.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script src="js/application_blank.js"></script>
+        <script src="js/mustache.js"></script>
+        <script src="js/spin.min.js"></script>
+        <script src="http://maps.googleapis.com/maps/api/js"></script>
+        <script>
+            var marker = null;
+            var lat, lng
+            function initMap() {
+                // Create a map object and specify the DOM element for display.
+                var map = new google.maps.Map(document.getElementById('googleMap'), {
+                    center: {lat: -1.750, lng: 115.8283},
+//                    scrollwheel: false,
+                    zoom: 5,
+//                    draggable: false,
+                });
+                map.addListener('click', function (e) {
+                    if (marker != null) {
+                        marker.setMap(null);
+                    }
+                    marker = new google.maps.Marker({position: e.latLng, map: map});
+                    fetchAreaCoverage(e.latLng.lat(), e.latLng.lng());
+                    lat = e.latLng.lat();
+                    lng = e.latLng.lng();
+                });
+            }
+            $(document).ready(function () {
+                initMap();
+                spinner = new Spinner(spinneropts);
+            }).ajaxStart(function () {
+                spinner.spin(document.getElementById("append-target"));
+            }).ajaxStop(function () {
+                spinner.stop();
+            })
+
+            function fetchAreaCoverage(lat, long) {
+                $.ajax({
+                    url: "http://api.pemiluapi.org/geographic/api/point?apiKey=fea6f7d9ec0b31e256a673114792cb17&lat=" + lat + "&long=" + long,
+                    type: "GET",
+                    dataType: "JSON",
+                    success: function (response) {
+                        appendAreaCoverage(response.data);
+                    },
+                    error: function () {
+                        alert("error.");
+                    }
+                })
+            }
+
+            function appendAreaCoverage(data) {
+                var template = $('#tmpl-area-coverage').html();
+                Mustache.parse(template);   // optional, speeds up future uses
+                var rendered = Mustache.render(template, {area_coverage_entity: data.results.areas});
+                $('#append-target').html(rendered);
+                $(".area-coverage-entity").on("click", function () {
+                    fetchDataCalon($(this).data("lembaga"), lat, lng);
+                })
+            }
+
+            function fetchDataCalon(lembaga, lat, lng) {
+                $.ajax({
+                    url: "http://api.pemiluapi.org/geographic/api/caleg?apiKey=fea6f7d9ec0b31e256a673114792cb17&lat=" + lat + "&long=" + lng + "&lembaga=" + lembaga,
+                    type: "GET",
+                    dataType: "JSON",
+                    success: function (response) {
+                        console.log(response);
+                        appendCalon(response.data);
+                    },
+                    error: function () {
+                        alert("error.")
+                    },
+                });
+            }
+
+            function appendCalon(data) {
+                var template = $('#tmpl-calon').html();
+                for (i in data.results[0].caleg)
+                    data.results[0].caleg[i].idx = i;
+                Mustache.parse(template);   // optional, speeds up future uses
+                var rendered = Mustache.render(template, {calon: data.results[0].caleg});
+                $('#append-target').html(rendered);
+            }
+
+            var spinneropts = {
+                lines: 13 // The number of lines to draw
+                , length: 28 // The length of each line
+                , width: 14 // The line thickness
+                , radius: 42 // The radius of the inner circle
+                , scale: 1 // Scales overall size of the spinner
+                , corners: 1 // Corner roundness (0..1)
+                , color: '#000' // #rgb or #rrggbb or array of colors
+                , opacity: 0.25 // Opacity of the lines
+                , rotate: 0 // The rotation offset
+                , direction: 1 // 1: clockwise, -1: counterclockwise
+                , speed: 1 // Rounds per second
+                , trail: 60 // Afterglow percentage
+                , fps: 20 // Frames per second when using setTimeout() as a fallback for CSS
+                , zIndex: 2e9 // The z-index (defaults to 2000000000)
+                , className: 'spinner' // The CSS class to assign to the spinner
+                , top: '50%' // Top position relative to parent
+                , left: '50%' // Left position relative to parent
+                , shadow: false // Whether to render a shadow
+                , hwaccel: false // Whether to use hardware acceleration
+                , position: 'absolute' // Element positioning
+            }
+
+        </script>
+    </head>
+    <body>
+        <div class="wrapper">
+            <div id='header'>
+                <h1>CALEG COLLECTION</h1>
+            </div>
+            <div class="row">
+                <div class="col-lg-7">
+                    <div id='map'>
+                        <h2>PILIH LOKASI</h2>
+                        <div id="googleMap" style="width:100%;height:400px;"></div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div id='result'>
+                        <h2>Hasil</h2>
+                        <div id="append-target">
+                            <p>Klik di peta untuk memilih daerah calon.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script type="x-tmpl-mustache" id="tmpl-area-coverage">
+            {{#area_coverage_entity}}
+            <div class="callout callout-info fade in area-coverage-entity" data-lembaga="{{lembaga}}" style="cursor:pointer">
+            <h5>{{nama}}</h5>
+            <p>{{kind}} - {{lembaga}}</p>
+            </div>
+            {{/area_coverage_entity}}
+            {{^area_coverage_entity}}
+            <p>Tidak ada data di area ini.</p>
+            {{/area_coverage_entity}}
+        </script>
+        <script type="x-tmpl-mustache" id="tmpl-calon">
+            {{#calon}}
+            <div class="panel panel-default">
+            <div class="panel-heading">
+            <h6 class="panel-title panel-trigger">
+            <a data-toggle="collapse" href="#calon{{idx}}" class="collapsed"><img style="display:inline-block" class="media-object" src="{{foto_url}}" alt=""> {{nama}}</a>
+            </h6>
+            </div>
+            <div id="calon{{idx}}" class="panel-collapse collapse" style="height: 0px;">
+            <div class="panel-body">
+            <table class='dataCaleg'>
+            <tr>
+            <td>id</td>
+            <td>:</td>
+            <td>{{id}}</td>
+            </tr>
+            <tr>
+            <td>Tahun</td>
+            <td>:</td>
+            <td>{{tahun}}</td>
+            </tr>
+            <tr>
+            <td>Lembaga</td>
+            <td>:</td>
+            <td>{{lembaga}}</td>
+            </tr>
+            <tr>
+            <td>Jenis Kelamin</td>
+            <td>:</td>
+            <td>{{jenis_kelamin}}</td>
+            </tr>
+            <tr>
+            <td>Agama</td>
+            <td>:</td>
+            <td>{{agama}}</td>
+            </tr>
+            <tr>
+            <td>Tempat Lahir</td>
+            <td>:</td>
+            <td>{{tempat_lahir}}</td>
+            </tr>
+            <tr>
+            <td>Tanggal Lahir</td>
+            <td>:</td>
+            <td>{{tanggal_lahir}}</td>
+            </tr>
+            <tr>
+            <td>Status Perkawinan</td>
+            <td>:</td>
+            <td>{{status_perkawinan}}</td>
+            </tr>
+            <tr>
+            <td>Nama Pasangan</td>
+            <td>:</td>
+            <td>{{nama_pasangan}}</td>
+            </tr>
+            <tr>
+            <td>Jumlah Anak</td>
+            <td>:</td>
+            <td>{{jumlah_anak}}</td>
+            </tr>
+            <tr>
+            <td>Kelurahan Tinggal</td>
+            <td>:</td>
+            <td>{{kelurahan_tinggal}}</td>
+            </tr>
+            <tr>
+            <td>Kecamatan Tinggal</td>
+            <td>:</td>
+            <td>{{kecamatan_tinggal}}</td>
+            </tr>
+            <tr>
+            <td>Kabupaten Tinggal</td>
+            <td>:</td>
+            <td>{{kabupaten_tinggal}}</td>
+            </tr>
+            <tr>
+            <td>Provinsi Tinggal</td>
+            <td>:</td>
+            <td>{{provinsi_tinggal}}</td>
+            </tr>
+            <tr>
+            <td>Partai</td>
+            <td>:</td>
+            <td>{{partai.nama}}</td>
+            </tr>
+            <tr>
+            <td>Urutan</td>
+            <td>:</td>
+            <td>{{urutan}}</td>
+            </tr>
+            <tr>
+            </table>
+            </div>
+            </div>
+            </div>
+            {{/calon}}
+        </script>
+
+    </body>
+</html>

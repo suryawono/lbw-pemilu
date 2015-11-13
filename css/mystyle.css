@@ -1,0 +1,39 @@
+body {
+    background-color: whitesmoke;
+}
+#header {
+    background-color: steelblue;
+    height: 100px;
+    margin-bottom: 20px;
+    transparent: 50%;
+}
+h1 {
+    text-align: center;
+    margin: 20px;
+    padding: 30px;
+    color: white;
+}
+h2 {
+    color: darkslategray;
+}
+#result {
+    margin-right: 20px;
+    overflow:auto;
+    max-height: 500px;
+    min-height: 500px;
+    padding-left: 20px;
+
+}
+#map {
+    margin-left: 20px;
+}
+
+.wrapper{
+    width:1366px;
+    margin:10px auto;
+}
+#append-target{
+    background-color: #ffd;
+    height:100%;
+    padding:20px;
+}
